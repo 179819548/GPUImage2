@@ -430,6 +430,10 @@ public class MovieInput: ImageSource {
         progress?(currentSampleTime.seconds / duration.seconds)
         
         sharedImageProcessingContext.runOperationSynchronously {
+            guard !(self.currentThread?.isExecuting ?? false) else {
+                //Don't seek any more when you' ve started processing the video.
+                return
+            }
             self.process(movieFrame:sampleBuffer)
             CMSampleBufferInvalidate(sampleBuffer)
         }
