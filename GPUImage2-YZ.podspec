@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
     s.xcconfig = { 'CLANG_MODULES_AUTOLINK' => 'YES',
                           'OTHER_SWIFT_FLAGS' => "$(inherited) -DGLES"}
 
-    s.ios.deployment_target = '8.0'
+    s.ios.deployment_target = '13.0'
     s.ios.exclude_files = 'framework/Source/Mac', 'framework/Source/Linux', 'framework/Source/Operations/Shaders/ConvertedShaders_GL.swift'
     s.frameworks   = ['OpenGLES', 'CoreMedia', 'QuartzCore', 'AVFoundation']
     s.swift_version = '5.0'

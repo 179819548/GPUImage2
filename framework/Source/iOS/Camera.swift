@@ -1,7 +1,7 @@
 import Foundation
 import AVFoundation
 
-public protocol CameraDelegate: class {
+public protocol CameraDelegate: AnyObject {
     func didCaptureBuffer(_ sampleBuffer: CMSampleBuffer)
 }
 public enum PhysicalCameraLocation {
@@ -133,10 +133,9 @@ public class Camera: NSObject, ImageSource, AVCaptureVideoDataOutputSampleBuffer
 
     public init(sessionPreset:AVCaptureSession.Preset,
                 cameraDevice:AVCaptureDevice? = nil,
-                location:PhysicalCameraLocation = .backFacing,
-                frameRate: Int = 25,
+                location:PhysicalCameraLocation = .frontFacing,
+                frameRate: Int = 30,
                 captureAsYUV:Bool = true) throws {
-        
         self.location = location
         self.captureAsYUV = captureAsYUV
 
@@ -167,11 +166,36 @@ public class Camera: NSObject, ImageSource, AVCaptureVideoDataOutputSampleBuffer
             super.init()
             throw error
         }
-        
-        if (captureSession.canAddInput(videoInput)) {
-            captureSession.addInput(videoInput)
+        var selectPreset = sessionPreset
+
+        if self.captureSession.canSetSessionPreset(sessionPreset) {
+            self.captureSession.sessionPreset = sessionPreset
+            if self.captureSession.canAddInput(self.videoInput) {
+                self.captureSession.addInput(self.videoInput)
+            }
+        }else {
+            let presets: [AVCaptureSession.Preset] = [
+                .hd4K3840x2160,
+                .hd1920x1080,
+                .hd1280x720,
+                .iFrame1280x720,
+                .iFrame960x540,
+                .vga640x480,
+                .high,
+                .low
+                // 添加其他预设
+            ]
+            for preset in presets {
+                if self.captureSession.canSetSessionPreset(preset) {
+                    self.captureSession.sessionPreset = preset
+                    if self.captureSession.canAddInput(self.videoInput) {
+                        self.captureSession.addInput(self.videoInput)
+                        selectPreset = preset
+                        break
+                    }
+                }
+            }
         }
-        
         // Add the video frame output
         videoOutput = AVCaptureVideoDataOutput()
         videoOutput.alwaysDiscardsLateVideoFrames = false
@@ -200,8 +224,7 @@ public class Camera: NSObject, ImageSource, AVCaptureVideoDataOutputSampleBuffer
         if (captureSession.canAddOutput(videoOutput)) {
             captureSession.addOutput(videoOutput)
         }
-        captureSession.sessionPreset = sessionPreset
-
+        captureSession.sessionPreset = selectPreset
         
         for connection in videoOutput.connections {
             if(connection.isVideoMirroringSupported) {
@@ -229,7 +252,6 @@ public class Camera: NSObject, ImageSource, AVCaptureVideoDataOutputSampleBuffer
         }
     }
     
-
     private func updateCameraFrameRate() {
         guard
             let captureDevice = inputCamera,
@@ -240,8 +262,8 @@ public class Camera: NSObject, ImageSource, AVCaptureVideoDataOutputSampleBuffer
             
             let rate = Int32(max(min(Float64(frameRate), range.maxFrameRate), range.minFrameRate))
             
-            captureDevice.activeVideoMinFrameDuration = CMTimeMake(1, rate)
-            captureDevice.activeVideoMaxFrameDuration = CMTimeMake(1, rate)
+            captureDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: rate)
+            captureDevice.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: rate)
             captureDevice.unlockForConfiguration()
         } catch {
             debugPrint("An Error occurred: \(error.localizedDescription))")
