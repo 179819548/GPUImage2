@@ -1,19 +1,15 @@
 open class OperationGroup: ImageProcessingOperation {
-    public let inputImageRelay = ImageRelay()
-    public let outputImageRelay = ImageRelay()
+    let inputImageRelay = ImageRelay()
+    let outputImageRelay = ImageRelay()
     
     public var sources:SourceContainer { get { return inputImageRelay.sources } }
     public var targets:TargetContainer { get { return outputImageRelay.targets } }
     public let maximumInputs:UInt = 1
     
-    public private(set) var userInfo:[AnyHashable:Any]?
-    
     public init() {
     }
     
     public func newFramebufferAvailable(_ framebuffer:Framebuffer, fromSourceIndex:UInt) {
-        userInfo = framebuffer.userInfo
-        
         inputImageRelay.newFramebufferAvailable(framebuffer, fromSourceIndex:fromSourceIndex)
     }
 

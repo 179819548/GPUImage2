@@ -10,12 +10,7 @@ public class MissEtikateFilter: LookupFilter {
     public override init() {
         super.init()
         
-        do {
-            try ({lookupImage = try PictureInput(imageName:"lookup_miss_etikate.png")})()
-        }
-        catch {
-            print("ERROR: Unable to create PictureInput \(error)")
-        }
+        ({lookupImage = PictureInput(imageName:"lookup_miss_etikate.png")})()
     }
 }
 #endif

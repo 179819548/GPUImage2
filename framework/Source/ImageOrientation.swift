@@ -4,7 +4,7 @@ public enum ImageOrientation {
     case landscapeLeft
     case landscapeRight
     
-    public func rotationNeededForOrientation(_ targetOrientation:ImageOrientation) -> Rotation {
+    func rotationNeededForOrientation(_ targetOrientation:ImageOrientation) -> Rotation {
         switch (self, targetOrientation) {
             case (.portrait, .portrait), (.portraitUpsideDown, .portraitUpsideDown), (.landscapeLeft, .landscapeLeft), (.landscapeRight, .landscapeRight): return .noRotation
             case (.portrait, .portraitUpsideDown): return .rotate180
@@ -33,7 +33,7 @@ public enum Rotation {
     case rotateClockwiseAndFlipVertically
     case rotateClockwiseAndFlipHorizontally
     
-    public func flipsDimensions() -> Bool {
+    func flipsDimensions() -> Bool {
         switch self {
             case .noRotation, .rotate180, .flipHorizontally, .flipVertically: return false
             case .rotateCounterclockwise, .rotateClockwise, .rotateClockwiseAndFlipVertically, .rotateClockwiseAndFlipHorizontally: return true

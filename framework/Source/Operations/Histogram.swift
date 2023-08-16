@@ -50,7 +50,7 @@ public class Histogram: BasicOperation {
         }
     }
     
-    override open func renderFrame() {
+    override func renderFrame() {
         let inputSize = sizeOfInitialStageBasedOnFramebuffer(inputFramebuffers[0]!)
         let inputByteSize = Int(inputSize.width * inputSize.height * 4)
         let data = UnsafeMutablePointer<UInt8>.allocate(capacity:inputByteSize)

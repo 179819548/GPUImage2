@@ -40,7 +40,7 @@ public class LineGenerator: ImageGenerator {
     }
     
     let lineShader:ShaderProgram
-    let uniformSettings = ShaderUniformSettings()
+    var uniformSettings = ShaderUniformSettings()
     
     public override init(size:Size) {
         lineShader = crashOnShaderCompileFailure("LineGenerator"){try sharedImageProcessingContext.programForVertexShader(LineVertexShader, fragmentShader:LineFragmentShader)}

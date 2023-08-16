@@ -2,12 +2,12 @@ import Foundation
 
 public func defaultVertexShaderForInputs(_ inputCount:UInt) -> String {
     switch inputCount {
-    case 1: return OneInputVertexShader
-    case 2: return TwoInputVertexShader
-    case 3: return ThreeInputVertexShader
-    case 4: return FourInputVertexShader
-    case 5: return FiveInputVertexShader
-    default: return OneInputVertexShader
+        case 1: return OneInputVertexShader
+        case 2: return TwoInputVertexShader
+        case 3: return ThreeInputVertexShader
+        case 4: return FourInputVertexShader
+        case 5: return FiveInputVertexShader
+        default: return OneInputVertexShader
     }
 }
 
@@ -28,32 +28,30 @@ open class BasicOperation: ImageProcessingOperation {
                 mask.addTarget(maskImageRelay)
             } else {
                 maskFramebuffer?.unlock()
-                maskImageRelay.removeAllSources()
+                maskImageRelay.removeSourceAtIndex(0)
                 maskFramebuffer = nil
             }
         }
     }
     public var activatePassthroughOnNextFrame:Bool = false
     public var uniformSettings = ShaderUniformSettings()
-    
+
     // MARK: -
     // MARK: Internal
-    
+
     public let targets = TargetContainer()
     public let sources = SourceContainer()
     var shader:ShaderProgram
-    public var inputFramebuffers = [UInt:Framebuffer]()
+    var inputFramebuffers = [UInt:Framebuffer]()
     var renderFramebuffer:Framebuffer!
     var outputFramebuffer:Framebuffer { get { return renderFramebuffer } }
     let usesAspectRatio:Bool
     let maskImageRelay = ImageRelay()
     var maskFramebuffer:Framebuffer?
     
-    public private(set) var userInfo:[AnyHashable:Any]?
-    
     // MARK: -
     // MARK: Initialization and teardown
-    
+
     public init(shader:ShaderProgram, numberOfInputs:UInt = 1) {
         self.maximumInputs = numberOfInputs
         self.shader = shader
@@ -66,7 +64,7 @@ open class BasicOperation: ImageProcessingOperation {
         self.shader = compiledShader
         usesAspectRatio = shader.uniformIndex("aspectRatio") != nil
     }
-    
+
     public init(vertexShaderFile:URL? = nil, fragmentShaderFile:URL, numberOfInputs:UInt = 1, operationName:String = #file) throws {
         let compiledShader:ShaderProgram
         if let vertexShaderFile = vertexShaderFile {
@@ -80,18 +78,18 @@ open class BasicOperation: ImageProcessingOperation {
     }
     
     deinit {
-        //debugPrint("Deallocating operation: \(self)")
+        debugPrint("Deallocating operation: \(self)")
     }
     
     // MARK: -
     // MARK: Rendering
     
-    public func newFramebufferAvailable(_ framebuffer:Framebuffer, fromSourceIndex:UInt) {
+    open func newFramebufferAvailable(_ framebuffer:Framebuffer, fromSourceIndex:UInt) {
         if let previousFramebuffer = inputFramebuffers[fromSourceIndex] {
             previousFramebuffer.unlock()
         }
         inputFramebuffers[fromSourceIndex] = framebuffer
-        
+
         guard (!activatePassthroughOnNextFrame) else { // Use this to allow a bootstrap of cyclical processing, like with a low pass filter
             activatePassthroughOnNextFrame = false
             updateTargetsWithFramebuffer(framebuffer)
@@ -105,7 +103,7 @@ open class BasicOperation: ImageProcessingOperation {
         }
     }
     
-    open func renderFrame() {
+    func renderFrame() {
         renderFramebuffer = sharedImageProcessingContext.framebufferCache.requestFramebufferWithProperties(orientation:.portrait, size:sizeOfInitialStageBasedOnFramebuffer(inputFramebuffers[0]!), stencil:mask != nil)
         
         let textureProperties = initialTextureProperties()
@@ -135,8 +133,6 @@ open class BasicOperation: ImageProcessingOperation {
         // If all inputs are still images, have this output behave as one
         renderFramebuffer.timingStyle = .stillImage
         
-        var foundUserInfo:[AnyHashable:Any]?
-        
         var latestTimestamp:Timestamp?
         for (key, framebuffer) in inputFramebuffers {
             
@@ -151,17 +147,7 @@ open class BasicOperation: ImageProcessingOperation {
             } else {
                 remainingFramebuffers[key] = framebuffer
             }
-            
-            // Pick userInfo from whichever input buffer has it
-            if let framebufferUserInfo = framebuffer.userInfo {
-                foundUserInfo = framebufferUserInfo
-            }
         }
-        
-        userInfo = foundUserInfo
-        // Pass onto the output buffer
-        renderFramebuffer.userInfo = foundUserInfo
-        
         inputFramebuffers = remainingFramebuffers
     }
     
@@ -189,7 +175,7 @@ open class BasicOperation: ImageProcessingOperation {
         return inputTextureProperties
     }
     
-    open func configureFramebufferSpecificUniforms(_ inputFramebuffer:Framebuffer) {
+    func configureFramebufferSpecificUniforms(_ inputFramebuffer:Framebuffer) {
         if usesAspectRatio {
             let outputRotation = overriddenOutputRotation ?? inputFramebuffer.orientation.rotationNeededForOrientation(.portrait)
             uniformSettings["aspectRatio"] = inputFramebuffer.aspectRatioForRotation(outputRotation)
@@ -197,10 +183,11 @@ open class BasicOperation: ImageProcessingOperation {
     }
     
     public func transmitPreviousImage(to target:ImageConsumer, atIndex:UInt) {
-        //guard let renderFramebuffer = self.renderFramebuffer, (!renderFramebuffer.timingStyle.isTransient()) else { return }
-        
-        //renderFramebuffer.lock()
-        //target.newFramebufferAvailable(renderFramebuffer, fromSourceIndex:atIndex)
+        sharedImageProcessingContext.runOperationAsynchronously{
+            guard let renderFramebuffer = self.renderFramebuffer, (!renderFramebuffer.timingStyle.isTransient()) else { return }
+            
+            renderFramebuffer.lock()
+            target.newFramebufferAvailable(renderFramebuffer, fromSourceIndex:atIndex)
+        }
     }
 }
-

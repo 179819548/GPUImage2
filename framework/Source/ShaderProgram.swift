@@ -59,17 +59,15 @@ public class ShaderProgram {
     }
     
     deinit {
-        sharedImageProcessingContext.runOperationSynchronously {
-            //debugPrint("Shader deallocated")
-            
-            if (self.vertexShader != nil) {
-                glDeleteShader(self.vertexShader)
-            }
-            if (self.fragmentShader != nil) {
-                glDeleteShader(self.fragmentShader)
-            }
-            glDeleteProgram(self.program)
+        //debugPrint("Shader deallocated")
+
+        if (vertexShader != nil) {
+            glDeleteShader(vertexShader)
         }
+        if (fragmentShader != nil) {
+            glDeleteShader(fragmentShader)
+        }
+        glDeleteProgram(program)
     }
     
     // MARK: -
@@ -95,9 +93,9 @@ public class ShaderProgram {
     }
     
     public func uniformIndex(_ uniform:String) -> GLint? {
-        //if let uniformAddress = uniformAddresses[uniform] {
-        //    return uniformAddress
-        //} else {
+        if let uniformAddress = uniformAddresses[uniform] {
+            return uniformAddress
+        } else {
             var uniformAddress:GLint = -1
             uniform.withGLChar{glString in
                 uniformAddress = glGetUniformLocation(self.program, glString)
@@ -109,7 +107,7 @@ public class ShaderProgram {
                 uniformAddresses[uniform] = uniformAddress
                 return uniformAddress
             }
-        //}
+        }
     }
     
     // MARK: -
@@ -117,7 +115,7 @@ public class ShaderProgram {
     
     public func setValue(_ value:GLfloat, forUniform:String) {
         guard let uniformAddress = uniformIndex(forUniform) else {
-            //debugPrint("WARNING: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
+            debugPrint("Warning: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
             return
         }
         if (currentUniformFloatValues[forUniform] != value) {
@@ -128,7 +126,7 @@ public class ShaderProgram {
 
     public func setValue(_ value:GLint, forUniform:String) {
         guard let uniformAddress = uniformIndex(forUniform) else {
-            //debugPrint("WARNING: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
+            debugPrint("Warning: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
             return
         }
         if (currentUniformIntValues[forUniform] != value) {
@@ -147,7 +145,7 @@ public class ShaderProgram {
     
     public func setValue(_ value:[GLfloat], forUniform:String) {
         guard let uniformAddress = uniformIndex(forUniform) else {
-            //debugPrint("WARNING: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
+            debugPrint("Warning: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
             return
         }
         if let previousValue = currentUniformFloatArrayValues[forUniform], previousValue == value{
@@ -167,7 +165,7 @@ public class ShaderProgram {
 
     public func setMatrix(_ value:[GLfloat], forUniform:String) {
         guard let uniformAddress = uniformIndex(forUniform) else {
-            //debugPrint("WARNING: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
+            debugPrint("Warning: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
             return
         }
         if let previousValue = currentUniformFloatArrayValues[forUniform], previousValue == value{

@@ -18,7 +18,7 @@ public class CrosshairGenerator: ImageGenerator {
     public var crosshairColor:Color = Color.green { didSet { uniformSettings["crosshairColor"] = crosshairColor } }
 
     let crosshairShader:ShaderProgram
-    let uniformSettings = ShaderUniformSettings()
+    var uniformSettings = ShaderUniformSettings()
 
     public override init(size:Size) {        
         crosshairShader = crashOnShaderCompileFailure("CrosshairGenerator"){try sharedImageProcessingContext.programForVertexShader(CrosshairVertexShader, fragmentShader:CrosshairFragmentShader)}

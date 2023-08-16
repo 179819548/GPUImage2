@@ -24,7 +24,7 @@ public class CircleGenerator: ImageGenerator {
     public func renderCircleOfRadius(_ radius:Float, center:Position, circleColor:Color = Color.white, backgroundColor:Color = Color.black) {
         let scaledRadius = radius * 2.0
         imageFramebuffer.activateFramebufferForRendering()
-        let uniformSettings = ShaderUniformSettings()
+        var uniformSettings = ShaderUniformSettings()
         uniformSettings["circleColor"] = circleColor
         uniformSettings["backgroundColor"] = backgroundColor
         uniformSettings["radius"] = scaledRadius

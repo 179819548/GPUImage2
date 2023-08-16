@@ -1,7 +1,7 @@
 // TODO: Have this adjust in real time to changing crop sizes
 // TODO: Verify at all orientations
 
-open class Crop: BasicOperation {
+public class Crop: BasicOperation {
     public var cropSizeInPixels: Size?
     public var locationOfCropInPixels: Position?
     
@@ -9,7 +9,7 @@ open class Crop: BasicOperation {
         super.init(fragmentShader:PassthroughFragmentShader, numberOfInputs:1)
     }
 
-    override open func renderFrame() {
+    override func renderFrame() {
         let inputFramebuffer:Framebuffer = inputFramebuffers[0]!
         let inputSize = inputFramebuffer.sizeForTargetOrientation(.portrait)
         

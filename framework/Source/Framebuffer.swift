@@ -15,34 +15,10 @@ import Glibc
 #endif
 
 import Foundation
-import AVFoundation
 
-struct FramebufferCreationError:Error, CustomStringConvertible {
-    var description:String {
-        return "FramebufferCreationError(errorCode: \(self.errorCode), errorCodeDescription: \(self.errorCodeDescription))"
-    }
-    
+// TODO: Add a good lookup table to this to allow for detailed error messages
+struct FramebufferCreationError:Error {
     let errorCode:GLenum
-    
-    var errorCodeDescription:String {
-        // Source --> https://www.khronos.org/registry/OpenGL-Refpages/es3.0/html/glCheckFramebufferStatus.xhtml
-        switch self.errorCode {
-        case GLenum(GL_FRAMEBUFFER_COMPLETE):
-            return "GL_FRAMEBUFFER_UNDEFINED"
-        case GLenum(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT):
-            return "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT"
-        case GLenum(GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT):
-            return "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT"
-        case GLenum(GL_FRAMEBUFFER_UNSUPPORTED):
-            return "GL_FRAMEBUFFER_UNSUPPORTED"
-        case GLenum(GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE):
-            return "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE"
-        case GLenum(GL_INVALID_ENUM):
-            return "GL_INVALID_ENUM"
-        default:
-            return "UNKNOWN"
-        }
-    }
 }
 
 public enum FramebufferTimingStyle {
@@ -56,7 +32,7 @@ public enum FramebufferTimingStyle {
         }
     }
     
-    public var timestamp:Timestamp? {
+    var timestamp:Timestamp? {
         get {
             switch self {
                 case .stillImage: return nil
@@ -69,8 +45,7 @@ public enum FramebufferTimingStyle {
 public class Framebuffer {
     public var timingStyle:FramebufferTimingStyle = .stillImage
     public var orientation:ImageOrientation
-    public var userInfo:[AnyHashable:Any]?
-    
+
     public let texture:GLuint
     let framebuffer:GLuint?
     let stencilBuffer:GLuint?
@@ -82,7 +57,7 @@ public class Framebuffer {
     let hash:Int64
     let textureOverride:Bool
     
-    unowned var context:OpenGLContext
+    weak var context:OpenGLContext?
     
     public init(context:OpenGLContext, orientation:ImageOrientation, size:GLSize, textureOnly:Bool = false, minFilter:Int32 = GL_LINEAR, magFilter:Int32 = GL_LINEAR, wrapS:Int32 = GL_CLAMP_TO_EDGE, wrapT:Int32 = GL_CLAMP_TO_EDGE, internalFormat:Int32 = GL_RGBA, format:Int32 = GL_BGRA, type:Int32 = GL_UNSIGNED_BYTE, stencil:Bool = false, overriddenTexture:GLuint? = nil) throws {
         self.context = context
@@ -121,28 +96,22 @@ public class Framebuffer {
     deinit {
         if (!textureOverride) {
             var mutableTexture = texture
-            context.runOperationAsynchronously {
-                glDeleteTextures(1, &mutableTexture)
-            }
-            //debugPrint("Delete texture at size: \(size)")
+            glDeleteTextures(1, &mutableTexture)
+            debugPrint("Delete texture at size: \(size)")
         }
         
         if let framebuffer = framebuffer {
 			var mutableFramebuffer = framebuffer
-            context.runOperationAsynchronously {
-                glDeleteFramebuffers(1, &mutableFramebuffer)
-            }
+            glDeleteFramebuffers(1, &mutableFramebuffer)
         }
 
         if let stencilBuffer = stencilBuffer {
             var mutableStencil = stencilBuffer
-            context.runOperationAsynchronously {
-                glDeleteRenderbuffers(1, &mutableStencil)
-            }
+            glDeleteRenderbuffers(1, &mutableStencil)
         }
     }
     
-    public func sizeForTargetOrientation(_ targetOrientation:ImageOrientation) -> GLSize {
+    func sizeForTargetOrientation(_ targetOrientation:ImageOrientation) -> GLSize {
         if self.orientation.rotationNeededForOrientation(targetOrientation).flipsDimensions() {
             return GLSize(width:size.height, height:size.width)
         } else {
@@ -150,7 +119,7 @@ public class Framebuffer {
         }
     }
     
-    public func aspectRatioForRotation(_ rotation:Rotation) -> Float {
+    func aspectRatioForRotation(_ rotation:Rotation) -> Float {
         if rotation.flipsDimensions() {
             return Float(size.width) / Float(size.height)
         } else {
@@ -175,7 +144,7 @@ public class Framebuffer {
     }
 
     public func texturePropertiesForOutputRotation(_ rotation:Rotation) -> InputTextureProperties {
-        return InputTextureProperties(textureVBO:context.textureVBO(for:rotation), texture:texture)
+        return InputTextureProperties(textureVBO:context!.textureVBO(for:rotation), texture:texture)
     }
 
     public func texturePropertiesForTargetOrientation(_ targetOrientation:ImageOrientation) -> InputTextureProperties {
@@ -205,7 +174,7 @@ public class Framebuffer {
         framebufferRetainCount -= 1
         if (framebufferRetainCount < 1) {
             if ((framebufferRetainCount < 0) && (cache != nil)) {
-                debugPrint("WARNING: Tried to overrelease a framebuffer")
+                print("WARNING: Tried to overrelease a framebuffer")
             }
             framebufferRetainCount = 0
             cache?.returnToCache(self)

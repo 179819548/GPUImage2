@@ -33,7 +33,7 @@ public class PictureOutput: ImageConsumer {
                 try imageData.write(to: self.url, options:.atomic)
             } catch {
                 // TODO: Handle this better
-                debugPrint("WARNING: Couldn't save image with error:\(error)")
+                print("WARNING: Couldn't save image with error:\(error)")
             }
         }
     }
@@ -53,7 +53,7 @@ public class PictureOutput: ImageConsumer {
         renderFramebuffer.unlock()
         guard let dataProvider = CGDataProvider(dataInfo:nil, data:data, size:imageByteSize, releaseData: dataProviderReleaseCallback) else {fatalError("Could not allocate a CGDataProvider")}
         let defaultRGBColorSpace = CGColorSpaceCreateDeviceRGB()
-        return CGImage(width:Int(framebuffer.size.width), height:Int(framebuffer.size.height), bitsPerComponent:8, bitsPerPixel:32, bytesPerRow:4 * Int(framebuffer.size.width), space:defaultRGBColorSpace, bitmapInfo:CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue), provider:dataProvider, decode:nil, shouldInterpolate:false, intent:.defaultIntent)!
+        return CGImage(width:Int(framebuffer.size.width), height:Int(framebuffer.size.height), bitsPerComponent:8, bitsPerPixel:32, bytesPerRow:4 * Int(framebuffer.size.width), space:defaultRGBColorSpace, bitmapInfo:CGBitmapInfo() /*| CGImageAlphaInfo.Last*/, provider:dataProvider, decode:nil, shouldInterpolate:false, intent:.defaultIntent)!
     }
     
     public func newFramebufferAvailable(_ framebuffer:Framebuffer, fromSourceIndex:UInt) {
@@ -80,8 +80,8 @@ public class PictureOutput: ImageConsumer {
             let image = UIImage(cgImage:cgImageFromBytes, scale:1.0, orientation:.up)
             let imageData:Data
             switch encodedImageFormat {
-                case .png: imageData = image.pngData()! // TODO: Better error handling here
-                case .jpeg: imageData = image.jpegData(compressionQuality: 0.8)! // TODO: Be able to set image quality
+                case .png: imageData = UIImagePNGRepresentation(image)! // TODO: Better error handling here
+                case .jpeg: imageData = UIImageJPEGRepresentation(image, 0.8)! // TODO: Be able to set image quality
             }
             
             imageCallback(imageData)
@@ -106,7 +106,7 @@ public class PictureOutput: ImageConsumer {
 }
 
 public extension ImageSource {
-    func saveNextFrameToURL(_ url:URL, format:PictureFileFormat) {
+    public func saveNextFrameToURL(_ url:URL, format:PictureFileFormat) {
         let pictureOutput = PictureOutput()
         pictureOutput.saveNextFrameToURL(url, format:format)
         self --> pictureOutput
@@ -114,14 +114,14 @@ public extension ImageSource {
 }
 
 public extension UIImage {
-    func filterWithOperation<T:ImageProcessingOperation>(_ operation:T) throws -> UIImage  {
-        return try filterWithPipeline{input, output in
+    public func filterWithOperation<T:ImageProcessingOperation>(_ operation:T) -> UIImage {
+        return filterWithPipeline{input, output in
             input --> operation --> output
         }
     }
     
-    func filterWithPipeline(_ pipeline:(PictureInput, PictureOutput) -> ()) throws -> UIImage  {
-        let picture = try PictureInput(image:self)
+    public func filterWithPipeline(_ pipeline:(PictureInput, PictureOutput) -> ()) -> UIImage {
+        let picture = PictureInput(image:self)
         var outputImage:UIImage?
         let pictureOutput = PictureOutput()
         pictureOutput.onlyCaptureNextFrame = true
