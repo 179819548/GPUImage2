@@ -56,6 +56,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
     
     var synchronizedEncodingDebug = false
     var totalFramesAppended:Int = 0
+    var startTime: DispatchTime?
     
     public init(URL:Foundation.URL, size:Size, fileType:AVFileType = .mov, liveVideo:Bool = false, videoSettings:[String:Any]? = nil, videoNaturalTimeScale:CMTimeScale? = nil, audioSettings:[String:Any]? = nil, audioSourceFormatHint:CMFormatDescription? = nil) throws {
         imageProcessingShareGroup = sharedImageProcessingContext.context.sharegroup
@@ -179,6 +180,12 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
             }
             self.synchronizedEncodingDebugPrint("MovieOutput finished writing")
             self.synchronizedEncodingDebugPrint("MovieOutput total frames appended: \(self.totalFramesAppended)")
+            if let startTime = self.startTime {
+                let nanoTime = DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds // <<<<< Difference in nano seconds (UInt64)
+                let timeInterval = Double(nanoTime) / 1_000_000_000 // Technically could overflow for long running tests
+                
+                self.synchronizedEncodingDebugPrint("MovieOutput duration: \(timeInterval) seconds")
+            }
         }
     }
     
@@ -202,6 +209,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
             if (self.previousFrameTime == nil) {
                 // This resolves black frames at the beginning. Any samples recieved before this time will be edited out.
                 self.assetWriter.startSession(atSourceTime: frameTime)
+                self.startTime = DispatchTime.now()
             }
             
             self.previousFrameTime = frameTime
